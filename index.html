@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Morning Circuit">
+<title>Morning Circuit</title>
+<link rel="apple-touch-icon" href="icon.png">
+<style>
+  :root {
+    --bg: #1c2128;
+    --bg-raised: #232933;
+    --ink: #f0ede6;
+    --ink-dim: #9aa3ad;
+    --accent: #6fa89c;
+    --accent-dim: #3d5f58;
+    --rule: #333b46;
+  }
+
+- { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+margin: 0;
+padding: 0;
+height: 100%;
+background: var(–bg);
+color: var(–ink);
+font-family: -apple-system, BlinkMacSystemFont, “Helvetica Neue”, sans-serif;
+overflow: hidden;
+overscroll-behavior: none;
+}
+
+.app {
+height: 100vh;
+height: -webkit-fill-available;
+display: flex;
+flex-direction: column;
+padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+/* –– Top: phase label + progress –– */
+.top {
+padding: 18px 24px 10px;
+text-align: center;
+}
+
+.phase-label {
+font-size: 13px;
+letter-spacing: 0.04em;
+color: var(–accent);
+font-weight: 600;
+margin: 0 0 10px;
+}
+
+.progress-row {
+display: flex;
+justify-content: center;
+gap: 6px;
+flex-wrap: wrap;
+padding: 0 8px;
+}
+
+.dot {
+width: 7px;
+height: 7px;
+border-radius: 50%;
+background: var(–rule);
+transition: background 0.25s ease, transform 0.25s ease;
+}
+.dot.done { background: var(–accent-dim); }
+.dot.active {
+background: var(–accent);
+transform: scale(1.35);
+}
+
+/* –– Main tappable card –– */
+.stage {
+flex: 1;
+display: flex;
+align-items: center;
+justify-content: center;
+padding: 10px 28px;
+cursor: pointer;
+user-select: none;
+position: relative;
+}
+
+.card {
+width: 100%;
+max-width: 560px;
+text-align: center;
+}
+
+.round-tag {
+font-size: 14px;
+color: var(–ink-dim);
+margin: 0 0 14px;
+letter-spacing: 0.02em;
+}
+
+.exercise-name {
+font-family: Georgia, “Iowan Old Style”, serif;
+font-size: clamp(30px, 8vw, 46px);
+line-height: 1.15;
+margin: 0 0 14px;
+color: var(–ink);
+}
+
+.muscles {
+font-size: 15px;
+color: var(–accent);
+margin: 0 0 22px;
+font-style: italic;
+}
+
+.description {
+font-size: 17px;
+line-height: 1.55;
+color: var(–ink-dim);
+margin: 0 auto;
+max-width: 460px;
+}
+
+.tap-hint {
+position: absolute;
+bottom: 14px;
+left: 0;
+right: 0;
+text-align: center;
+font-size: 12px;
+color: var(–rule);
+letter-spacing: 0.03em;
+}
+
+/* –– Bottom controls –– */
+.controls {
+display: flex;
+align-items: center;
+justify-content: space-between;
+padding: 14px 22px 18px;
+border-top: 1px solid var(–rule);
+}
+
+.ctrl-btn {
+background: none;
+border: none;
+color: var(–ink-dim);
+font-size: 15px;
+padding: 10px 14px;
+font-family: inherit;
+}
+.ctrl-btn:active { color: var(–ink); }
+.ctrl-btn.primary { color: var(–accent); font-weight: 600; }
+
+.restart-btn {
+background: none;
+border: none;
+color: var(–ink-dim);
+font-size: 13px;
+}
+
+/* –– Done screen –– */
+.done-screen {
+display: none;
+flex: 1;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+text-align: center;
+padding: 30px;
+}
+.done-screen.show { display: flex; }
+.done-title {
+font-family: Georgia, serif;
+font-size: 34px;
+margin: 0 0 10px;
+}
+.done-sub {
+color: var(–ink-dim);
+font-size: 16px;
+margin: 0 0 30px;
+}
+.restart-main {
+background: var(–accent);
+color: #10201c;
+border: none;
+padding: 14px 30px;
+border-radius: 30px;
+font-size: 16px;
+font-weight: 600;
+font-family: inherit;
+}
+
+.hidden { display: none !important; }
+</style>
+
+</head>
+<body>
+
+<div class="app" id="app">
+
+  <div class="top" id="topBar">
+    <p class="phase-label" id="phaseLabel">WARM-UP</p>
+    <div class="progress-row" id="progressRow"></div>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="card">
+      <p class="round-tag" id="roundTag"></p>
+      <h1 class="exercise-name" id="exerciseName"></h1>
+      <p class="muscles" id="muscles"></p>
+      <p class="description" id="description"></p>
+    </div>
+    <p class="tap-hint">tap anywhere to continue</p>
+  </div>
+
+  <div class="controls">
+    <button class="ctrl-btn" id="backBtn">Back</button>
+    <button class="restart-btn" id="restartBtn">Start over</button>
+    <button class="ctrl-btn primary" id="nextBtn">Next</button>
+  </div>
+
+  <div class="done-screen" id="doneScreen">
+    <h1 class="done-title">Nice work</h1>
+    <p class="done-sub">All 3 rounds complete.</p>
+    <button class="restart-main" id="restartMainBtn">Start over</button>
+  </div>
+
+</div>
+
+<script>
+const warmup = [
+  { name: "Arm Circles", muscles: "Shoulders", desc: "Extend arms out to your sides at shoulder height. Make small controlled circles forward, then reverse. Keep shoulders down, away from your ears." },
+  { name: "Torso Twists", muscles: "Core, spine mobility", desc: "Feet hip-width apart, knees soft. Rotate your upper body side to side, letting arms swing loosely. Keep hips facing forward." },
+  { name: "Cat-Cow", muscles: "Spine, core", desc: "On hands and knees, alternate arching your back up (chin tucked) and dropping your belly while lifting head and tailbone. Move slowly with your breath." },
+  { name: "Hip Circles", muscles: "Hips, lower back", desc: "Hands on hips, feet shoulder-width apart. Rotate your hips in a large circle. Do half the time in each direction." },
+  { name: "Band Pull-Aparts", muscles: "Shoulders, upper back", desc: "Hold the band at chest height, arms extended, palms down. Pull apart by squeezing shoulder blades together, then return with control." },
+];
+
+const circuit = [
+  { name: "Push-Ups", muscles: "Chest, shoulders, triceps", desc: "Hands slightly wider than shoulders, body in a straight line. Lower your chest toward the floor, then press up. Modify on knees or hands on a chair." },
+  { name: "Squats", muscles: "Quads, glutes, hamstrings", desc: "Feet shoulder-width apart. Sit hips back and down like sitting into a chair, chest up, knees tracking over toes. Hold a dumbbell at your chest for a goblet squat." },
+  { name: "Band Rows", muscles: "Back, biceps", desc: "Anchor the band on a door handle at chest height, or step on it with both feet. Pull hands toward your ribs, squeezing shoulder blades, then extend back out." },
+  { name: "Reverse Lunges", muscles: "Legs, glutes, balance", desc: "Step one leg back and lower your back knee toward the floor, both knees near 90 degrees. Push through the front heel to return. Alternate legs, moving slowly." },
+  { name: "Overhead Press", muscles: "Shoulders, triceps", desc: "Standing or kneeling, hold a dumbbell in each hand at shoulder height. Press both overhead until arms extend, then lower with control." },
+  { name: "Glute Bridge March", muscles: "Glutes, hamstrings, core", desc: "Lying on your back, knees bent, lift hips into a bridge. While holding it, alternate lifting one knee toward your chest, keeping hips level." },
+  { name: "Plank", muscles: "Core, shoulders", desc: "Forearms on the floor, elbows under shoulders, straight line head to heels. Engage core and glutes to avoid sagging hips." },
+  { name: "Bicep Curls", muscles: "Biceps", desc: "Dumbbell in each hand, arms by your sides, palms forward. Curl toward your shoulders, elbows tucked in, then lower slowly." },
+  { name: "Superman Holds", muscles: "Lower back, glutes", desc: "Face down, arms extended forward. Lift arms, chest, and legs a few inches, squeezing lower back and glutes. Hold briefly, lower with control." },
+  { name: "Bird-Dogs", muscles: "Core, balance", desc: "On hands and knees, extend one arm forward and the opposite leg back, hips and shoulders level. Hold briefly, then switch sides." },
+];
+
+const cooldown = [
+  { name: "Standing Forward Fold", muscles: "Hamstrings, lower back", desc: "Feet hip-width apart, hinge forward at the hips, letting head and arms hang. Soft bend in the knees." },
+  { name: "Quad Stretch", muscles: "Quadriceps", desc: "Balance on one leg, bend the opposite knee and grab your ankle behind you, pulling gently toward your glutes. Switch sides halfway." },
+  { name: "Chest Opener", muscles: "Chest, shoulders", desc: "Clasp hands behind your back, gently straighten arms, lift chest and squeeze shoulder blades together." },
+  { name: "Child's Pose", muscles: "Lower back, hips, shoulders", desc: "Sit back onto your heels and fold forward, arms extended, forehead resting on the floor. Breathe slowly." },
+];
+
+// Build the full sequence: warmup, then 3 rounds of circuit, then cooldown
+const sequence = [];
+warmup.forEach(ex => sequence.push({ ...ex, phase: "WARM-UP", roundTag: "" }));
+for (let r = 1; r <= 3; r++) {
+  circuit.forEach(ex => sequence.push({ ...ex, phase: "CIRCUIT", roundTag: `Round ${r} of 3` }));
+}
+cooldown.forEach(ex => sequence.push({ ...ex, phase: "COOL-DOWN", roundTag: "" }));
+
+let idx = 0;
+
+const phaseLabel = document.getElementById("phaseLabel");
+const roundTag = document.getElementById("roundTag");
+const exerciseName = document.getElementById("exerciseName");
+const muscles = document.getElementById("muscles");
+const description = document.getElementById("description");
+const progressRow = document.getElementById("progressRow");
+const stage = document.getElementById("stage");
+const nextBtn = document.getElementById("nextBtn");
+const backBtn = document.getElementById("backBtn");
+const restartBtn = document.getElementById("restartBtn");
+const restartMainBtn = document.getElementById("restartMainBtn");
+const doneScreen = document.getElementById("doneScreen");
+const app = document.getElementById("app");
+const topBar = document.getElementById("topBar");
+
+function buildDots() {
+  progressRow.innerHTML = "";
+  sequence.forEach((_, i) => {
+    const d = document.createElement("div");
+    d.className = "dot";
+    progressRow.appendChild(d);
+  });
+}
+
+function render() {
+  if (idx >= sequence.length) {
+    showDone();
+    return;
+  }
+  doneScreen.classList.remove("show");
+  stage.classList.remove("hidden");
+  topBar.classList.remove("hidden");
+  document.querySelector(".controls").classList.remove("hidden");
+
+  const item = sequence[idx];
+  phaseLabel.textContent = item.phase;
+  roundTag.textContent = item.roundTag;
+  roundTag.style.display = item.roundTag ? "block" : "none";
+  exerciseName.textContent = item.name;
+  muscles.textContent = item.muscles;
+  description.textContent = item.desc;
+
+  const dots = progressRow.children;
+  for (let i = 0; i < dots.length; i++) {
+    dots[i].className = "dot" + (i < idx ? " done" : i === idx ? " active" : "");
+  }
+
+  backBtn.style.visibility = idx === 0 ? "hidden" : "visible";
+}
+
+function showDone() {
+  stage.classList.add("hidden");
+  topBar.classList.add("hidden");
+  document.querySelector(".controls").classList.add("hidden");
+  doneScreen.classList.add("show");
+}
+
+function next() {
+  idx++;
+  render();
+}
+function back() {
+  if (idx > 0) idx--;
+  render();
+}
+function restart() {
+  idx = 0;
+  render();
+}
+
+stage.addEventListener("click", next);
+nextBtn.addEventListener("click", (e) => { e.stopPropagation(); next(); });
+backBtn.addEventListener("click", (e) => { e.stopPropagation(); back(); });
+restartBtn.addEventListener("click", (e) => { e.stopPropagation(); restart(); });
+restartMainBtn.addEventListener("click", restart);
+
+buildDots();
+render();
+</script>
+
+</body>
+</html>
